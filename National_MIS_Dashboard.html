@@ -1,0 +1,676 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>National MIS Dashboard — West Zone Q2 2026</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,300&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  :root {
+    --bg: #0b0e13;
+    --bg2: #111520;
+    --bg3: #181d28;
+    --card: #161b26;
+    --border: rgba(255,255,255,0.07);
+    --border2: rgba(255,255,255,0.12);
+    --text: #e8eaf0;
+    --text2: #8a90a0;
+    --text3: #555d70;
+    --green: #22c97d;
+    --green-dim: rgba(34,201,125,0.12);
+    --red: #f24c4c;
+    --red-dim: rgba(242,76,76,0.12);
+    --amber: #f5a623;
+    --amber-dim: rgba(245,166,35,0.1);
+    --blue: #4b8ef0;
+    --blue-dim: rgba(75,142,240,0.1);
+    --teal: #29bfb8;
+    --purple: #9b72f5;
+    --accent: #22c97d;
+    --radius: 12px;
+    --radius-sm: 8px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    line-height: 1.5;
+  }
+  /* ── Layout ── */
+  .app { display: flex; min-height: 100vh; }
+  .sidebar {
+    width: 220px; flex-shrink: 0;
+    background: var(--bg2);
+    border-right: 1px solid var(--border);
+    display: flex; flex-direction: column;
+    padding: 24px 0;
+    position: sticky; top: 0; height: 100vh;
+  }
+  .sidebar-logo {
+    padding: 0 20px 24px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 12px;
+  }
+  .sidebar-logo span {
+    font-size: 11px; font-weight: 600; letter-spacing: 0.12em;
+    text-transform: uppercase; color: var(--accent);
+  }
+  .sidebar-logo h1 { font-size: 15px; font-weight: 600; color: var(--text); margin-top: 4px; line-height: 1.3; }
+  .nav-section { padding: 8px 12px 4px; font-size: 10px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text3); }
+  .nav-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 9px 20px; font-size: 13px; font-weight: 400;
+    color: var(--text2); cursor: pointer; border-radius: 0;
+    transition: all 0.15s; border-left: 2px solid transparent;
+  }
+  .nav-item:hover { color: var(--text); background: rgba(255,255,255,0.03); }
+  .nav-item.active { color: var(--accent); border-left-color: var(--accent); background: rgba(34,201,125,0.06); font-weight: 500; }
+  .nav-dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; opacity: 0.6; flex-shrink: 0; }
+  .sidebar-footer {
+    margin-top: auto; padding: 16px 20px 0;
+    border-top: 1px solid var(--border);
+  }
+  .last-updated { font-size: 11px; color: var(--text3); }
+  .live-badge {
+    display: inline-flex; align-items: center; gap: 5px;
+    font-size: 10px; font-weight: 600; letter-spacing: 0.05em;
+    color: var(--green); background: var(--green-dim);
+    padding: 3px 8px; border-radius: 20px; margin-bottom: 6px;
+  }
+  .live-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--green); animation: pulse 1.8s ease-in-out infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+  /* ── Main content ── */
+  .main { flex: 1; overflow-y: auto; }
+  .topbar {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 20px 32px; border-bottom: 1px solid var(--border);
+    background: var(--bg2); position: sticky; top: 0; z-index: 10;
+  }
+  .topbar-title { font-size: 17px; font-weight: 600; }
+  .topbar-meta { font-size: 12px; color: var(--text2); margin-top: 2px; }
+  .week-filters { display: flex; gap: 6px; }
+  .week-btn {
+    padding: 6px 14px; border-radius: 20px; border: 1px solid var(--border2);
+    background: transparent; color: var(--text2); font-size: 12px; font-family: inherit;
+    cursor: pointer; transition: all 0.15s; font-weight: 400;
+  }
+  .week-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .week-btn.active { background: var(--accent); border-color: var(--accent); color: #000; font-weight: 600; }
+
+  .content { padding: 28px 32px; }
+
+  /* ── KPI Cards ── */
+  .kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px; }
+  .kpi-card {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 20px;
+    position: relative; overflow: hidden;
+    transition: border-color 0.2s;
+  }
+  .kpi-card:hover { border-color: var(--border2); }
+  .kpi-card::before {
+    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+  }
+  .kpi-card.green::before { background: var(--green); }
+  .kpi-card.red::before { background: var(--red); }
+  .kpi-card.amber::before { background: var(--amber); }
+  .kpi-card.blue::before { background: var(--blue); }
+  .kpi-label { font-size: 11px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text3); margin-bottom: 10px; }
+  .kpi-value { font-size: 34px; font-weight: 600; line-height: 1; font-family: 'DM Mono', monospace; }
+  .kpi-card.green .kpi-value { color: var(--green); }
+  .kpi-card.red .kpi-value { color: var(--red); }
+  .kpi-card.amber .kpi-value { color: var(--amber); }
+  .kpi-card.blue .kpi-value { color: var(--blue); }
+  .kpi-sub { font-size: 12px; color: var(--text2); margin-top: 8px; }
+  .kpi-bar { height: 3px; background: var(--border); border-radius: 2px; margin-top: 12px; overflow: hidden; }
+  .kpi-bar-fill { height: 100%; border-radius: 2px; transition: width 0.8s ease; }
+  .green .kpi-bar-fill { background: var(--green); }
+  .red .kpi-bar-fill { background: var(--red); }
+  .amber .kpi-bar-fill { background: var(--amber); }
+  .blue .kpi-bar-fill { background: var(--blue); }
+
+  /* ── Chart grid ── */
+  .chart-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+  .chart-grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+  .chart-card {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 20px;
+  }
+  .chart-card.wide { grid-column: span 2; }
+  .chart-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 16px; }
+  .chart-title { font-size: 13px; font-weight: 600; color: var(--text); }
+  .chart-sub { font-size: 11px; color: var(--text3); margin-top: 3px; }
+  .chart-canvas-wrap { position: relative; }
+
+  /* ── Table ── */
+  .table-wrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  thead th {
+    text-align: left; padding: 8px 12px;
+    font-size: 10px; font-weight: 600; letter-spacing: 0.08em;
+    text-transform: uppercase; color: var(--text3);
+    border-bottom: 1px solid var(--border);
+  }
+  tbody tr { border-bottom: 1px solid var(--border); transition: background 0.1s; }
+  tbody tr:hover { background: rgba(255,255,255,0.02); }
+  tbody td { padding: 10px 12px; color: var(--text2); }
+  tbody td:first-child { color: var(--text); font-weight: 500; font-family: 'DM Mono', monospace; font-size: 11px; }
+  .badge {
+    display: inline-block; padding: 2px 8px; border-radius: 4px;
+    font-size: 10px; font-weight: 600; letter-spacing: 0.05em;
+  }
+  .badge-red { background: var(--red-dim); color: var(--red); }
+  .badge-green { background: var(--green-dim); color: var(--green); }
+  .badge-amber { background: var(--amber-dim); color: var(--amber); }
+  .rate-bar { height: 4px; border-radius: 2px; background: var(--border); margin-top: 4px; }
+  .rate-bar-fill { height: 100%; border-radius: 2px; }
+
+  /* ── Dependency donut section ── */
+  .dep-list { display: flex; flex-direction: column; gap: 10px; margin-top: 4px; }
+  .dep-row { display: flex; flex-direction: column; gap: 4px; }
+  .dep-label { display: flex; justify-content: space-between; font-size: 12px; color: var(--text2); }
+  .dep-label span:last-child { font-family: 'DM Mono', monospace; font-size: 11px; color: var(--text); }
+  .dep-track { height: 5px; background: var(--border); border-radius: 3px; overflow: hidden; }
+  .dep-fill { height: 100%; border-radius: 3px; }
+
+  /* ── Section header ── */
+  .section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
+  .section-title { font-size: 13px; font-weight: 600; }
+  .section-sub { font-size: 11px; color: var(--text3); }
+
+  /* ── Reason pills ── */
+  .reason-grid { display: flex; flex-direction: column; gap: 8px; }
+  .reason-row { display: flex; align-items: center; gap: 10px; }
+  .reason-label { font-size: 12px; color: var(--text2); flex: 1; }
+  .reason-count { font-size: 11px; font-family: 'DM Mono', monospace; color: var(--text); min-width: 24px; text-align: right; }
+  .reason-track { flex: 0 0 80px; height: 4px; background: var(--border); border-radius: 2px; overflow: hidden; }
+  .reason-fill { height: 100%; background: var(--red); border-radius: 2px; }
+
+  /* ── Scrollbar ── */
+  ::-webkit-scrollbar { width: 4px; height: 4px; }
+  ::-webkit-scrollbar-track { background: var(--bg); }
+  ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+
+  @media (max-width: 1100px) {
+    .kpi-grid { grid-template-columns: repeat(2,1fr); }
+    .chart-grid-2 { grid-template-columns: 1fr; }
+    .chart-card.wide { grid-column: span 1; }
+    .chart-grid-3 { grid-template-columns: 1fr 1fr; }
+    .sidebar { display: none; }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+
+<!-- Sidebar -->
+<aside class="sidebar">
+  <div class="sidebar-logo">
+    <span>West Zone</span>
+    <h1>National MIS<br>Dashboard</h1>
+  </div>
+  <div class="nav-section">Overview</div>
+  <div class="nav-item active"><span class="nav-dot"></span>Performance Summary</div>
+  <div class="nav-item"><span class="nav-dot"></span>Trip Analysis</div>
+  <div class="nav-section">Lanes</div>
+  <div class="nav-item"><span class="nav-dot"></span>Lane Performance</div>
+  <div class="nav-item"><span class="nav-dot"></span>Origin DC View</div>
+  <div class="nav-section">Issues</div>
+  <div class="nav-item"><span class="nav-dot"></span>Breach Reasons</div>
+  <div class="nav-item"><span class="nav-dot"></span>Dependency Type</div>
+  <div class="sidebar-footer">
+    <div class="live-badge"><span class="live-dot"></span>LIVE</div>
+    <div class="last-updated">Q2 2026 · Apr 01–15</div>
+    <div class="last-updated" style="margin-top:4px;font-size:10px;" id="updated-time"></div>
+  </div>
+</aside>
+
+<!-- Main -->
+<div class="main">
+  <!-- Topbar -->
+  <div class="topbar">
+    <div>
+      <div class="topbar-title">Performance Dashboard</div>
+      <div class="topbar-meta">Q2 2026 · West Zone · 825 total trips · April 01–15</div>
+    </div>
+    <div class="week-filters">
+      <button class="week-btn active" onclick="filterWeek('All')">All Weeks</button>
+      <button class="week-btn" onclick="filterWeek('Week-14')">Week 14</button>
+      <button class="week-btn" onclick="filterWeek('Week-15')">Week 15</button>
+      <button class="week-btn" onclick="filterWeek('Week-16')">Week 16</button>
+    </div>
+  </div>
+
+  <div class="content">
+
+    <!-- KPI Cards -->
+    <div class="kpi-grid">
+      <div class="kpi-card green">
+        <div class="kpi-label">On-Time Performance</div>
+        <div class="kpi-value" id="kpi-ontime">49.3%</div>
+        <div class="kpi-sub" id="kpi-ontime-sub">407 of 825 trips</div>
+        <div class="kpi-bar"><div class="kpi-bar-fill" id="bar-ontime" style="width:49.3%"></div></div>
+      </div>
+      <div class="kpi-card red">
+        <div class="kpi-label">Breach Rate</div>
+        <div class="kpi-value" id="kpi-breach">38.3%</div>
+        <div class="kpi-sub" id="kpi-breach-sub">316 of 825 trips</div>
+        <div class="kpi-bar"><div class="kpi-bar-fill" id="bar-breach" style="width:38.3%"></div></div>
+      </div>
+      <div class="kpi-card amber">
+        <div class="kpi-label">In Transit</div>
+        <div class="kpi-value" id="kpi-transit">102</div>
+        <div class="kpi-sub">Trips currently running</div>
+        <div class="kpi-bar"><div class="kpi-bar-fill" id="bar-transit" style="width:12.4%"></div></div>
+      </div>
+      <div class="kpi-card blue">
+        <div class="kpi-label">Total Trips</div>
+        <div class="kpi-value" id="kpi-total">825</div>
+        <div class="kpi-sub">Across 3 weeks</div>
+        <div class="kpi-bar"><div class="kpi-bar-fill" style="width:100%"></div></div>
+      </div>
+    </div>
+
+    <!-- Row: Daily trend (wide) + Dependency -->
+    <div class="chart-grid-2" style="grid-template-columns: 2fr 1fr;">
+      <div class="chart-card">
+        <div class="chart-header">
+          <div>
+            <div class="chart-title">Daily Trip Performance</div>
+            <div class="chart-sub">Apr 01–13 · On-time vs Breached</div>
+          </div>
+        </div>
+        <div class="chart-canvas-wrap">
+          <canvas id="dailyChart" height="90"></canvas>
+        </div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-header">
+          <div>
+            <div class="chart-title">Dependency Type</div>
+            <div class="chart-sub">Root cause classification</div>
+          </div>
+        </div>
+        <div class="dep-list" id="dep-list"></div>
+      </div>
+    </div>
+
+    <!-- Row: Weekly stacked + Overall donut -->
+    <div class="chart-grid-2" style="grid-template-columns: 3fr 2fr; margin-bottom: 16px;">
+      <div class="chart-card">
+        <div class="chart-header">
+          <div>
+            <div class="chart-title">Weekly Performance Trend</div>
+            <div class="chart-sub">On-time vs Breached per week</div>
+          </div>
+        </div>
+        <canvas id="weeklyChart" height="80"></canvas>
+      </div>
+      <div class="chart-card">
+        <div class="chart-header">
+          <div>
+            <div class="chart-title">Overall Performance Split</div>
+            <div class="chart-sub">All trips · Q2 2026</div>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:24px;">
+          <div style="width:140px;flex-shrink:0;"><canvas id="donutChart"></canvas></div>
+          <div id="donut-legend" style="display:flex;flex-direction:column;gap:10px;font-size:12px;"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Row: Origin DC + Breach Reasons -->
+    <div class="chart-grid-2" style="margin-bottom: 16px;">
+      <div class="chart-card">
+        <div class="chart-header">
+          <div>
+            <div class="chart-title">Origin DC Performance</div>
+            <div class="chart-sub">On-time vs Breached by dispatch hub</div>
+          </div>
+        </div>
+        <canvas id="originChart" height="110"></canvas>
+      </div>
+      <div class="chart-card">
+        <div class="chart-header">
+          <div>
+            <div class="chart-title">Breach Reasons</div>
+            <div class="chart-sub">Standard comment breakdown</div>
+          </div>
+        </div>
+        <div class="reason-grid" id="reason-list"></div>
+      </div>
+    </div>
+
+    <!-- Lane Breach Table -->
+    <div class="chart-card" style="margin-bottom: 16px;">
+      <div class="section-header">
+        <div>
+          <div class="section-title">High-Risk Lanes — Breach Rate Ranking</div>
+          <div class="section-sub">Top 10 lanes by breach %, minimum 5 trips</div>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table id="lane-table">
+          <thead>
+            <tr>
+              <th>Lane Code</th>
+              <th>Total Trips</th>
+              <th>Breached</th>
+              <th>On Time</th>
+              <th>Breach Rate</th>
+              <th>Visual</th>
+            </tr>
+          </thead>
+          <tbody id="lane-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+  </div><!-- /content -->
+</div><!-- /main -->
+</div><!-- /app -->
+
+<script>
+// @@DATA_INJECT@@
+// Live data injected by build.py — do not edit this block manually
+const ALL_DATA = window.__LIVE_DATA__ || {
+  weekly: [
+    {week:"Week-14", total:240, ontime:125, breached:115, running:0},
+    {week:"Week-15", total:415, ontime:229, breached:186, running:0},
+    {week:"Week-16", total:170, ontime:53,  breached:15,  running:82}
+  ],
+  daily: [
+    {date:"Apr 01", ontime:29, breached:32},{date:"Apr 02", ontime:31, breached:29},
+    {date:"Apr 03", ontime:33, breached:28},{date:"Apr 04", ontime:32, breached:26},
+    {date:"Apr 05", ontime:36, breached:24},{date:"Apr 06", ontime:38, breached:22},
+    {date:"Apr 07", ontime:26, breached:35},{date:"Apr 08", ontime:31, breached:30},
+    {date:"Apr 09", ontime:28, breached:29},{date:"Apr 10", ontime:31, breached:28},
+    {date:"Apr 11", ontime:39, breached:18},{date:"Apr 12", ontime:37, breached:14},
+    {date:"Apr 13", ontime:16, breached:1}
+  ],
+  origin: [
+    {dc:"Surat DC",total:335,ontime:163,breached:129},
+    {dc:"Jaipur DC",total:141,ontime:51,breached:75},
+    {dc:"Ahmedabad DC",total:120,ontime:60,breached:43},
+    {dc:"Mumbai DC",total:96,ontime:46,breached:39},
+    {dc:"Nagpur DC",total:42,ontime:29,breached:7},
+    {dc:"Pune DC",total:28,ontime:15,breached:10},
+    {dc:"Raipur DC",total:27,ontime:21,breached:3},
+    {dc:"Indore DC",total:13,ontime:4,breached:8},
+    {dc:"Sagar DC",total:13,ontime:11,breached:1},
+    {dc:"Bhopal DC",total:10,ontime:7,breached:1}
+  ],
+  lanes: [
+    {lane:"JAI-BLR-2",total:13,breached:12,rate:92.3},
+    {lane:"STV-HYD-1",total:13,breached:12,rate:92.3},
+    {lane:"JAI-PAT-1",total:11,breached:10,rate:90.9},
+    {lane:"BOM-PNQ-1",total:14,breached:11,rate:78.6},
+    {lane:"STV-AMD-2",total:14,breached:11,rate:78.6},
+    {lane:"BOM-STV-1",total:13,breached:10,rate:76.9},
+    {lane:"STV-PAT-3",total:11,breached:8,rate:72.7},
+    {lane:"JAI-HYD",total:14,breached:10,rate:71.4},
+    {lane:"STV-AMD-1",total:14,breached:10,rate:71.4},
+    {lane:"STV-PNQ-2",total:14,breached:10,rate:71.4}
+  ],
+  dependency: [
+    {type:"Vehicle/CL Dependency",count:468},
+    {type:"IN_TAT",count:200},
+    {type:"Ops Dependency",count:157}
+  ],
+  reasons: [
+    {reason:"Vehicle Breakdown",count:13},
+    {reason:"Traffic Jam",count:11},
+    {reason:"Driver / Vendor Issue",count:8},
+    {reason:"Delay Departure from ODC",count:4},
+    {reason:"Uncontrollable Contingency",count:4},
+    {reason:"No Entry",count:2},
+    {reason:"Route Diversion",count:1},
+    {reason:"Long Hold at Via DC",count:1}
+  ],
+  kpi: {total:825, ontime:407, breached:316, running:102, intransit:102},
+  updated: "Static data — connect to Google Sheets via GitHub Actions"
+}
+
+// Filter state
+let activeWeek = 'All';
+
+// ── Chart defaults ────────────────────────────────────────────
+Chart.defaults.color = '#8a90a0';
+Chart.defaults.font.family = "'DM Sans', sans-serif";
+Chart.defaults.font.size = 11;
+const GRID = 'rgba(255,255,255,0.05)';
+const GREEN = '#22c97d', RED = '#f24c4c', AMBER = '#f5a623', BLUE = '#4b8ef0', TEAL = '#29bfb8';
+
+// ── Build charts ──────────────────────────────────────────────
+let dailyChart, weeklyChart, donutChart, originChart;
+
+function buildDaily() {
+  const d = ALL_DATA.daily;
+  const ctx = document.getElementById('dailyChart').getContext('2d');
+  dailyChart = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: d.map(r => r.date),
+      datasets: [
+        { label:'On Time', data: d.map(r=>r.ontime), backgroundColor: 'rgba(34,201,125,0.75)', borderRadius:3, borderSkipped:false },
+        { label:'Breached', data: d.map(r=>r.breached), backgroundColor: 'rgba(242,76,76,0.75)', borderRadius:3, borderSkipped:false }
+      ]
+    },
+    options: {
+      responsive:true, interaction:{mode:'index',intersect:false},
+      plugins:{legend:{display:true,labels:{boxWidth:10,padding:16,usePointStyle:true,pointStyle:'circle'}}},
+      scales:{
+        x:{grid:{color:GRID},ticks:{font:{size:10}}},
+        y:{grid:{color:GRID},ticks:{font:{size:10}},stacked:false}
+      }
+    }
+  });
+}
+
+function buildWeekly(data) {
+  const ctx = document.getElementById('weeklyChart').getContext('2d');
+  if (weeklyChart) weeklyChart.destroy();
+  weeklyChart = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: data.map(r=>r.week),
+      datasets: [
+        { label:'On Time',      data:data.map(r=>r.ontime),   backgroundColor:'rgba(34,201,125,0.8)',  borderRadius:4, borderSkipped:false },
+        { label:'Breached',     data:data.map(r=>r.breached), backgroundColor:'rgba(242,76,76,0.8)',   borderRadius:4, borderSkipped:false },
+        { label:'Running',      data:data.map(r=>r.running),  backgroundColor:'rgba(245,166,35,0.8)',  borderRadius:4, borderSkipped:false }
+      ]
+    },
+    options: {
+      responsive:true, interaction:{mode:'index',intersect:false},
+      plugins:{legend:{display:true,labels:{boxWidth:10,padding:14,usePointStyle:true,pointStyle:'circle'}}},
+      scales:{
+        x:{grid:{color:GRID}},
+        y:{grid:{color:GRID},beginAtZero:true}
+      }
+    }
+  });
+}
+
+function buildDonut(ontime, breached, running) {
+  const ctx = document.getElementById('donutChart').getContext('2d');
+  if (donutChart) donutChart.destroy();
+  const total = ontime + breached + running;
+  donutChart = new Chart(ctx, {
+    type:'doughnut',
+    data:{
+      labels:['On Time','Breached','Running'],
+      datasets:[{data:[ontime,breached,running], backgroundColor:[GREEN,RED,AMBER], borderWidth:0, hoverOffset:4}]
+    },
+    options:{
+      cutout:'72%', responsive:true,
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>`${ctx.label}: ${ctx.raw} (${(ctx.raw/total*100).toFixed(1)}%)`}}}
+    }
+  });
+  const legend = document.getElementById('donut-legend');
+  const items = [{label:'On Time',val:ontime,color:GREEN},{label:'Breached',val:breached,color:RED},{label:'Running',val:running,color:AMBER}];
+  legend.innerHTML = items.map(i=>`
+    <div style="display:flex;align-items:center;gap:8px;">
+      <span style="width:8px;height:8px;border-radius:50%;background:${i.color};display:inline-block;flex-shrink:0"></span>
+      <div>
+        <div style="font-size:12px;color:#e8eaf0">${i.label}</div>
+        <div style="font-size:11px;font-family:DM Mono,monospace;color:#8a90a0">${i.val} · ${(i.val/total*100).toFixed(1)}%</div>
+      </div>
+    </div>`).join('');
+}
+
+function buildOrigin() {
+  const d = ALL_DATA.origin;
+  const ctx = document.getElementById('originChart').getContext('2d');
+  originChart = new Chart(ctx, {
+    type:'bar',
+    data:{
+      labels: d.map(r=>r.dc.replace(' DC','')),
+      datasets:[
+        {label:'On Time',  data:d.map(r=>r.ontime),   backgroundColor:'rgba(34,201,125,0.75)', borderRadius:3, borderSkipped:false},
+        {label:'Breached', data:d.map(r=>r.breached), backgroundColor:'rgba(242,76,76,0.75)',  borderRadius:3, borderSkipped:false}
+      ]
+    },
+    options:{
+      indexAxis:'y', responsive:true, interaction:{mode:'index',intersect:false},
+      plugins:{legend:{display:true,labels:{boxWidth:10,padding:14,usePointStyle:true,pointStyle:'circle'}}},
+      scales:{
+        x:{grid:{color:GRID},stacked:false},
+        y:{grid:{color:GRID},ticks:{font:{size:11}}}
+      }
+    }
+  });
+}
+
+function buildDependency() {
+  const dep = ALL_DATA.dependency;
+  const total = dep.reduce((s,d)=>s+d.count,0);
+  const colors = [BLUE, TEAL, AMBER];
+  document.getElementById('dep-list').innerHTML = dep.map((d,i)=>`
+    <div class="dep-row">
+      <div class="dep-label"><span>${d.type}</span><span>${d.count}</span></div>
+      <div class="dep-track"><div class="dep-fill" style="width:${(d.count/total*100).toFixed(1)}%;background:${colors[i]}"></div></div>
+    </div>`).join('');
+}
+
+function buildReasons() {
+  const r = ALL_DATA.reasons;
+  const max = r[0].count;
+  document.getElementById('reason-list').innerHTML = r.map(row=>`
+    <div class="reason-row">
+      <div class="reason-label">${row.reason}</div>
+      <div class="reason-track"><div class="reason-fill" style="width:${(row.count/max*100).toFixed(0)}%"></div></div>
+      <div class="reason-count">${row.count}</div>
+    </div>`).join('');
+}
+
+function buildLaneTable() {
+  const tbody = document.getElementById('lane-tbody');
+  tbody.innerHTML = ALL_DATA.lanes.map(l=>{
+    const ontime = l.total - l.breached;
+    const rateColor = l.rate >= 80 ? RED : l.rate >= 60 ? AMBER : GREEN;
+    return `<tr>
+      <td>${l.lane}</td>
+      <td>${l.total}</td>
+      <td><span class="badge badge-red">${l.breached}</span></td>
+      <td><span class="badge badge-green">${ontime}</span></td>
+      <td style="font-family:'DM Mono',monospace;color:${rateColor};font-size:13px;font-weight:600">${l.rate}%</td>
+      <td style="width:120px">
+        <div class="rate-bar"><div class="rate-bar-fill" style="width:${l.rate}%;background:${rateColor}"></div></div>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+// ── KPI update ────────────────────────────────────────────────
+function updateKPIs(data) {
+  const total = data.reduce((s,r)=>s+r.total,0);
+  const ontime = data.reduce((s,r)=>s+r.ontime,0);
+  const breached = data.reduce((s,r)=>s+r.breached,0);
+  const running = data.reduce((s,r)=>s+r.running,0);
+  const intransit = activeWeek === 'All' ? 102 : '-';
+
+  document.getElementById('kpi-ontime').textContent = total ? (ontime/total*100).toFixed(1)+'%' : '—';
+  document.getElementById('kpi-ontime-sub').textContent = `${ontime} of ${total} trips`;
+  document.getElementById('bar-ontime').style.width = total ? (ontime/total*100)+'%' : '0%';
+
+  document.getElementById('kpi-breach').textContent = total ? (breached/total*100).toFixed(1)+'%' : '—';
+  document.getElementById('kpi-breach-sub').textContent = `${breached} of ${total} trips`;
+  document.getElementById('bar-breach').style.width = total ? (breached/total*100)+'%' : '0%';
+
+  document.getElementById('kpi-transit').textContent = intransit;
+  document.getElementById('kpi-total').textContent = total;
+
+  buildDonut(ontime, breached, running);
+}
+
+// ── Week filter ───────────────────────────────────────────────
+function filterWeek(week) {
+  activeWeek = week;
+  document.querySelectorAll('.week-btn').forEach(b => b.classList.toggle('active', b.textContent.replace('Week ','Week-') === week || (week==='All' && b.textContent==='All Weeks')));
+  const data = week === 'All' ? ALL_DATA.weekly : ALL_DATA.weekly.filter(r=>r.week===week);
+  updateKPIs(data);
+  buildWeekly(data);
+}
+
+// ── Google Sheets live fetch ──────────────────────────────────
+// To enable live data: set SHEET_ID to your Google Sheet ID
+// and publish the "Basedata" sheet via File → Share → Publish to web → CSV
+const SHEET_ID = '';  // 👈 paste your Google Sheet ID here
+
+async function fetchLiveData() {
+  if (!SHEET_ID) return;
+  try {
+    const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=Basedata`;
+    const res = await fetch(url);
+    const text = await res.text();
+    const lines = text.trim().split('\n');
+    const headers = lines[0].split(',').map(h=>h.replace(/"/g,'').trim());
+    const rows = lines.slice(1).map(l=>{
+      const vals = l.split(',').map(v=>v.replace(/"/g,'').trim());
+      return Object.fromEntries(headers.map((h,i)=>[h,vals[i]]));
+    });
+    // TODO: recompute metrics from live rows and call updateKPIs / chart rebuilds
+    console.log('Live data loaded:', rows.length, 'rows');
+  } catch(e) { console.warn('Live fetch failed, using static data:', e); }
+}
+
+// ── Timestamp ─────────────────────────────────────────────────
+function updateTimestamp() {
+  document.getElementById('updated-time').textContent = 'Updated: ' + new Date().toLocaleTimeString('en-IN', {hour:'2-digit',minute:'2-digit'});
+}
+
+// ── Init ──────────────────────────────────────────────────────
+buildDaily();
+buildWeekly(ALL_DATA.weekly);
+buildDonut(ALL_DATA.kpi ? ALL_DATA.kpi.ontime : 407, ALL_DATA.kpi ? ALL_DATA.kpi.breached : 316, ALL_DATA.kpi ? ALL_DATA.kpi.running : 82);
+buildOrigin();
+buildDependency();
+buildReasons();
+buildLaneTable();
+updateKPIs(ALL_DATA.weekly);
+updateTimestamp();
+// Show last updated from live data if available
+if (ALL_DATA.updated) {
+  const el = document.getElementById('updated-time');
+  if (el) el.textContent = 'Data: ' + ALL_DATA.updated;
+}
+
+// Auto-refresh every hour
+setInterval(async () => {
+  await fetchLiveData();
+  updateTimestamp();
+// Show last updated from live data if available
+if (ALL_DATA.updated) {
+  const el = document.getElementById('updated-time');
+  if (el) el.textContent = 'Data: ' + ALL_DATA.updated;
+}
+}, 60 * 60 * 1000);
+
+</script>
+</body>
+</html>

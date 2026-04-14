@@ -1,0 +1,40 @@
+name: Refresh MIS Dashboard
+
+on:
+  schedule:
+    - cron: '30 * * * *'   # Every hour at :30 past (UTC) = :00 IST approx
+  workflow_dispatch:         # Manual trigger from Actions tab anytime
+
+permissions:
+  contents: write            # Allows the job to push updated dashboard.html
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Python dependencies
+        run: pip install requests pandas
+
+      - name: Fetch Google Sheet data and rebuild dashboard
+        run: python build.py
+        env:
+          SHEET_ID: ${{ secrets.SHEET_ID }}
+
+      - name: Commit and push updated dashboard
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add dashboard.html
+          git diff --cached --quiet \
+            || git commit -m "Auto-refresh: $(date -u '+%d %b %Y %H:%M UTC')"
+          git push
