@@ -4,7 +4,7 @@ from datetime import datetime, timedelta
 
 # ── Config ────────────────────────────────────────────────────
 SHEET_ID  = "1lU18_6sXGMlQG4P-AZf-Qw-auu--4wac3IpcEZyoV5A"
-SHEET_GID = "925773389"
+SHEET_GID = "1839236023"
 
 URL      = f"https://docs.google.com/spreadsheets/d/{SHEET_ID}/export?format=csv&gid={SHEET_GID}"
 URL_GVIZ = f"https://docs.google.com/spreadsheets/d/{SHEET_ID}/gviz/tq?tqx=out:csv&sheet=Basedata"
