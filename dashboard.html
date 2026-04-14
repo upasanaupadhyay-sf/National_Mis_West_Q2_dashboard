@@ -200,7 +200,13 @@
     .chart-grid-2 { grid-template-columns: 1fr; }
     .chart-card.wide { grid-column: span 1; }
     .chart-grid-3 { grid-template-columns: 1fr 1fr; }
-    .sidebar { display: none; }
+    .sidebar { width: 180px; }
+  }
+  @media (max-width: 700px) {
+    .sidebar { width: 160px; font-size: 12px; }
+    .content { padding: 16px; }
+    .topbar { padding: 14px 16px; flex-direction: column; align-items: flex-start; gap: 10px; }
+    .kpi-grid { grid-template-columns: 1fr 1fr; }
   }
 </style>
 </head>
@@ -218,14 +224,14 @@
     <h1>National MIS<br>Dashboard</h1>
   </div>
   <div class="nav-section">Overview</div>
-  <div class="nav-item active"><span class="nav-dot"></span>Performance Summary</div>
-  <div class="nav-item"><span class="nav-dot"></span>Trip Analysis</div>
+  <div class="nav-item active" onclick="navTo('sec-summary', this)"><span class="nav-dot"></span>Performance Summary</div>
+  <div class="nav-item" onclick="navTo('sec-trip', this)"><span class="nav-dot"></span>Trip Analysis</div>
   <div class="nav-section">Lanes</div>
-  <div class="nav-item"><span class="nav-dot"></span>Lane Performance</div>
-  <div class="nav-item"><span class="nav-dot"></span>Origin DC View</div>
+  <div class="nav-item" onclick="navTo('sec-lanes', this)"><span class="nav-dot"></span>Lane Performance</div>
+  <div class="nav-item" onclick="navTo('sec-origin', this)"><span class="nav-dot"></span>Origin DC View</div>
   <div class="nav-section">Issues</div>
-  <div class="nav-item"><span class="nav-dot"></span>Breach Reasons</div>
-  <div class="nav-item"><span class="nav-dot"></span>Dependency Type</div>
+  <div class="nav-item" onclick="navTo('sec-reasons', this)"><span class="nav-dot"></span>Breach Reasons</div>
+  <div class="nav-item" onclick="navTo('sec-dep', this)"><span class="nav-dot"></span>Dependency Type</div>
   <div class="sidebar-footer">
     <div class="live-badge"><span class="live-dot"></span>LIVE</div>
     <div class="last-updated">Q2 2026 · Apr 01–15</div>
@@ -252,7 +258,7 @@
   <div class="content">
 
     <!-- KPI Cards -->
-    <div class="kpi-grid">
+    <div id="sec-summary" class="kpi-grid">
       <div class="kpi-card green">
         <div class="kpi-label">On-Time Performance</div>
         <div class="kpi-value" id="kpi-ontime">49.3%</div>
@@ -280,7 +286,7 @@
     </div>
 
     <!-- Row: Daily trend (wide) + Dependency -->
-    <div class="chart-grid-2" style="grid-template-columns: 2fr 1fr;">
+    <div id="sec-trip" class="chart-grid-2" style="grid-template-columns: 2fr 1fr;">
       <div class="chart-card">
         <div class="chart-header">
           <div>
@@ -292,7 +298,7 @@
           <canvas id="dailyChart" height="90"></canvas>
         </div>
       </div>
-      <div class="chart-card">
+      <div id="sec-dep" class="chart-card">
         <div class="chart-header">
           <div>
             <div class="chart-title">Dependency Type</div>
@@ -329,7 +335,7 @@
     </div>
 
     <!-- Row: Origin DC + Breach Reasons -->
-    <div class="chart-grid-2" style="margin-bottom: 16px;">
+    <div id="sec-origin" class="chart-grid-2" style="margin-bottom: 16px;">
       <div class="chart-card">
         <div class="chart-header">
           <div>
@@ -339,7 +345,7 @@
         </div>
         <canvas id="originChart" height="110"></canvas>
       </div>
-      <div class="chart-card">
+      <div id="sec-reasons" class="chart-card">
         <div class="chart-header">
           <div>
             <div class="chart-title">Breach Reasons</div>
@@ -351,7 +357,7 @@
     </div>
 
     <!-- Lane Breach Table -->
-    <div class="chart-card" style="margin-bottom: 16px;">
+    <div id="sec-lanes" class="chart-card" style="margin-bottom: 16px;">
       <div class="section-header">
         <div>
           <div class="section-title">High-Risk Lanes — Breach Rate Ranking</div>
@@ -381,8 +387,6 @@
 
 <script>
 // @@DATA_INJECT@@
-window.__LIVE_DATA__ = {"kpi": {"total": 826, "ontime": 428, "breached": 318, "running": 80, "intransit": 80}, "weekly": [{"week": "Week-14", "total": 240, "ontime": 125, "breached": 115, "running": 0}, {"week": "Week-15", "total": 415, "ontime": 229, "breached": 186, "running": 0}, {"week": "Week-16", "total": 171, "ontime": 74, "breached": 17, "running": 80}], "daily": [{"date": "Apr 04", "ontime": 32, "breached": 26}, {"date": "Aug 04", "ontime": 31, "breached": 30}, {"date": "Dec 04", "ontime": 40, "breached": 14}, {"date": "Feb 04", "ontime": 31, "breached": 29}, {"date": "Jan 04", "ontime": 29, "breached": 32}, {"date": "Jul 04", "ontime": 26, "breached": 35}, {"date": "Jun 04", "ontime": 38, "breached": 22}, {"date": "Mar 04", "ontime": 33, "breached": 28}, {"date": "May 04", "ontime": 36, "breached": 24}, {"date": "Nov 04", "ontime": 39, "breached": 18}, {"date": "Oct 04", "ontime": 31, "breached": 28}, {"date": "Sep 04", "ontime": 28, "breached": 29}], "origin": [{"dc": "Surat DC", "total": 335, "ontime": 168, "breached": 129}, {"dc": "Jaipur DC", "total": 141, "ontime": 56, "breached": 75}, {"dc": "Ahmedabad DC", "total": 120, "ontime": 62, "breached": 43}, {"dc": "Mumbai DC", "total": 96, "ontime": 50, "breached": 39}, {"dc": "Nagpur DC", "total": 42, "ontime": 30, "breached": 7}, {"dc": "Pune DC", "total": 28, "ontime": 16, "breached": 11}, {"dc": "Raipur DC", "total": 28, "ontime": 23, "breached": 3}, {"dc": "Indore DC", "total": 13, "ontime": 5, "breached": 8}, {"dc": "Sagar DC", "total": 13, "ontime": 11, "breached": 2}, {"dc": "Bhopal DC", "total": 10, "ontime": 7, "breached": 1}], "lanes": [{"lane": "JAI-BLR-2", "total": 13, "breached": 12, "rate": 92.3}, {"lane": "STV-HYD-1", "total": 13, "breached": 12, "rate": 92.3}, {"lane": "JAI-PAT-1", "total": 11, "breached": 10, "rate": 90.9}, {"lane": "BOM-PNQ-1", "total": 14, "breached": 11, "rate": 78.6}, {"lane": "STV-AMD-2", "total": 14, "breached": 11, "rate": 78.6}, {"lane": "BOM-STV-1", "total": 13, "breached": 10, "rate": 76.9}, {"lane": "STV-PAT-3", "total": 11, "breached": 8, "rate": 72.7}, {"lane": "JAI-HYD", "total": 14, "breached": 10, "rate": 71.4}, {"lane": "PNQ-STV-1", "total": 14, "breached": 10, "rate": 71.4}, {"lane": "STV-AMD-1", "total": 14, "breached": 10, "rate": 71.4}], "dependency": [{"type": "Vehicle/CL Dependency", "count": 461}, {"type": "IN_TAT", "count": 208}, {"type": "Ops Dependency", "count": 157}], "reasons": [{"reason": "Vehicle Breakdown", "count": 13}, {"reason": "Traffic Jam", "count": 11}, {"reason": "Driver / Vendor Issue", "count": 8}, {"reason": "Delay Departure from ODC", "count": 4}, {"reason": "Uncontrollable Contingency", "count": 4}, {"reason": "No Entry", "count": 2}, {"reason": "Route diversion", "count": 1}, {"reason": "Long Hold at Via DC", "count": 1}], "updated": "14 Apr 2026 11:21 UTC"};
-window.__LIVE_DATA__ = {"kpi": {"total": 825, "ontime": 408, "breached": 316, "running": 101, "intransit": 101}, "weekly": [{"week": "Week-14", "total": 240, "ontime": 125, "breached": 115, "running": 0}, {"week": "Week-15", "total": 415, "ontime": 229, "breached": 186, "running": 0}, {"week": "Week-16", "total": 170, "ontime": 54, "breached": 15, "running": 101}], "daily": [{"date": "Apr 04", "ontime": 32, "breached": 26}, {"date": "Aug 04", "ontime": 31, "breached": 30}, {"date": "Dec 04", "ontime": 37, "breached": 14}, {"date": "Feb 04", "ontime": 31, "breached": 29}, {"date": "Jan 04", "ontime": 29, "breached": 32}, {"date": "Jul 04", "ontime": 26, "breached": 35}, {"date": "Jun 04", "ontime": 38, "breached": 22}, {"date": "Mar 04", "ontime": 33, "breached": 28}, {"date": "May 04", "ontime": 36, "breached": 24}, {"date": "Nov 04", "ontime": 39, "breached": 18}, {"date": "Oct 04", "ontime": 31, "breached": 28}, {"date": "Sep 04", "ontime": 28, "breached": 29}], "origin": [{"dc": "Surat DC", "total": 335, "ontime": 163, "breached": 129}, {"dc": "Jaipur DC", "total": 141, "ontime": 51, "breached": 75}, {"dc": "Ahmedabad DC", "total": 120, "ontime": 60, "breached": 43}, {"dc": "Mumbai DC", "total": 96, "ontime": 47, "breached": 39}, {"dc": "Nagpur DC", "total": 42, "ontime": 29, "breached": 7}, {"dc": "Pune DC", "total": 28, "ontime": 15, "breached": 10}, {"dc": "Raipur DC", "total": 27, "ontime": 21, "breached": 3}, {"dc": "Indore DC", "total": 13, "ontime": 4, "breached": 8}, {"dc": "Sagar DC", "total": 13, "ontime": 11, "breached": 1}, {"dc": "Bhopal DC", "total": 10, "ontime": 7, "breached": 1}], "lanes": [{"lane": "JAI-BLR-2", "total": 13, "breached": 12, "rate": 92.3}, {"lane": "STV-HYD-1", "total": 13, "breached": 12, "rate": 92.3}, {"lane": "JAI-PAT-1", "total": 11, "breached": 10, "rate": 90.9}, {"lane": "BOM-PNQ-1", "total": 14, "breached": 11, "rate": 78.6}, {"lane": "STV-AMD-2", "total": 14, "breached": 11, "rate": 78.6}, {"lane": "BOM-STV-1", "total": 13, "breached": 10, "rate": 76.9}, {"lane": "STV-PAT-3", "total": 11, "breached": 8, "rate": 72.7}, {"lane": "JAI-HYD", "total": 14, "breached": 10, "rate": 71.4}, {"lane": "STV-AMD-1", "total": 14, "breached": 10, "rate": 71.4}, {"lane": "STV-PNQ-2", "total": 14, "breached": 10, "rate": 71.4}], "dependency": [{"type": "Vehicle/CL Dependency", "count": 467}, {"type": "IN_TAT", "count": 201}, {"type": "Ops Dependency", "count": 157}], "reasons": [{"reason": "Vehicle Breakdown", "count": 13}, {"reason": "Traffic Jam", "count": 11}, {"reason": "Driver / Vendor Issue", "count": 8}, {"reason": "Delay Departure from ODC", "count": 4}, {"reason": "Uncontrollable Contingency", "count": 4}, {"reason": "No Entry", "count": 2}, {"reason": "Route diversion", "count": 1}, {"reason": "Long Hold at Via DC", "count": 1}], "updated": "14 Apr 2026 11:16 UTC"};
 // Live data injected by build.py — do not edit this block manually
 const ALL_DATA = window.__LIVE_DATA__ || {
   weekly: [
@@ -444,6 +448,19 @@ const ALL_DATA = window.__LIVE_DATA__ || {
 
 // Filter state
 let activeWeek = 'All';
+
+// ── Sidebar Navigation ────────────────────────────────────────
+function navTo(sectionId, clickedItem) {
+  // Update active state on nav items
+  document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+  if (clickedItem) clickedItem.classList.add('active');
+
+  // Scroll to section
+  const target = document.getElementById(sectionId);
+  if (target) {
+    target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+}
 
 // ── Chart defaults ────────────────────────────────────────────
 Chart.defaults.color = '#8a90a0';
