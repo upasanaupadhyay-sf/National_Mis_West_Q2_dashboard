@@ -1,4 +1,4 @@
-import os, requests, pandas as pd, json, re
+import requests, pandas as pd, json, re
 from io import StringIO
 from datetime import datetime, timedelta
 
@@ -16,231 +16,218 @@ try:
     res.raise_for_status()
     print("Export URL worked")
 except Exception as e1:
-    print(f"Export URL failed ({e1}), trying gviz URL...")
+    print(f"Export URL failed ({e1}), trying gviz...")
     try:
         res = requests.get(URL_GVIZ, timeout=30)
         res.raise_for_status()
         print("Gviz URL worked")
     except Exception as e2:
-        print(f"Both URLs failed. e1={e1}, e2={e2}")
         raise e2
 
 # ── Auto-detect header row ────────────────────────────────────
-ANCHOR_COLS = ['Date of Connection', 'Trip Starting Week', 'Overall Performance',
-               'Lane Code', 'Origin_DC', 'Vendor Name']
+ANCHORS = ['Date of Connection', 'Trip Starting Week', 'Overall Performance', 'Lane Code']
 raw_text = res.text
-lines = raw_text.splitlines()
+lines    = raw_text.splitlines()
 
 header_row_idx = 0
 for i, line in enumerate(lines[:20]):
-    if any(anchor in line for anchor in ANCHOR_COLS):
+    if any(a in line for a in ANCHORS):
         header_row_idx = i
-        print(f"Header row found at line index: {i}")
+        print(f"Header found at line {i}")
         break
 
 df = pd.read_csv(StringIO(raw_text), header=header_row_idx)
 df.columns = [str(c).strip() for c in df.columns]
 print(f"Loaded {len(df)} rows, {len(df.columns)} columns")
+print(f"Columns: {list(df.columns)}")
 
-# ── DEBUG: print all column names & first 3 raw values ───────
-print("\n=== ALL COLUMNS & SAMPLE VALUES (first 3 rows) ===")
-for col in df.columns:
-    vals = df[col].head(3).tolist()
-    print(f"  '{col}': {vals}")
-print("=== END COLUMNS ===\n")
+# ── CONFIRMED column mapping from actual sheet data ───────────
+# Exact names from the Basedata sheet (verified from xlsx analysis):
+#   [0]  Date of Connection         → Excel serial date (e.g. 46113.0)
+#   [1]  Trip Starting Week         → "Week-14", "Week-15" etc
+#   [4]  Departure Type             → "Regular", "Ad-hoc"
+#   [5]  Vendor Name                → "Ruby Roadlines - FTL"
+#   [10] Lane Code                  → "STV-AMD-1"
+#   [11] Origin_DC                  → "Surat DC"
+#   [15] Vehicle STD                → Excel datetime serial (e.g. 46113.333)
+#   [16] Vehicle ATD                → Excel datetime serial (e.g. 46113.347)
+#   [17] Delay Placement (Hr)       → fractional day (0.0 = no delay)
+#   [18] Delay Departure (Hrs)      → fractional day (0.0138 = 20 min)  ← NAMED "Hrs" but is fractional day!
+#   [50] Destination-STA            → Excel serial date
+#   [59] Designed Running TAT       → fractional day (0.2916 = 7.0h)
+#   [60] Actual Running TAT         → fractional day (0.2756 = 6.62h)
+#   [63] Design + Holding = Total TAT             → fractional day
+#   [64] Actual (Design + Holding) = Total TAT    → fractional day
+#   [65] Trip Status                → "Trip Closed", "In Transit"
+#   [67] Overall Performance        → "On Time", "Breached"
+#   [74] Standard Comment
+#   [75] LH Detailed Reason
 
-# ── Column name mapping ───────────────────────────────────────
-COL_MAP = {
-    'Date of Connection':                    ['Date of Connection', 'Date Of Connection'],
-    'Trip Starting Week':                    ['Trip Starting Week', 'Week'],
-    'Departure Type':                        ['Departure Type', 'DepartureType'],
-    'Vendor Name':                           ['Vendor Name', 'Vendor _ Name', 'Vendor_Name', 'VendorName'],
-    'Lane Code':                             ['Lane Code', 'Lane', 'LaneCode'],
-    'Origin_DC':                             ['Origin_DC', 'Origin DC', 'Location ', 'Location', 'Origin'],
-    'Vehicle STD':                           ['Vehicle STD', 'STD', 'Scheduled Time of Departure'],
-    'Vehicle ATD':                           ['Vehicle ATD', 'ATD', 'Actual Time of Departure'],
-    'Delay Placement (Hr)':                  ['Delay Placement (Hr)', 'Delay Placement (Hrs)', 'Delay Placement', 'Placement Delay (Hr)', 'Placement Delay'],
-    'Delay Departure (Hrs)':                 ['Delay Departure (Hrs)', 'Delay Departure (Hr)', 'Delay Departure', 'Departure Delay'],
-    'Designed Running TAT':                  ['Designed Running TAT', 'Design Running TAT', 'Designed Running TAT (Hrs)', 'Running TAT (Design)'],
-    'Actual Running TAT':                    ['Actual Running TAT', 'Actual Running TAT (Hrs)', 'Running TAT (Actual)'],
-    'Design + Holding = Total TAT':          ['Design + Holding = Total TAT', 'Designed Total TAT', 'Design Total TAT', 'Total TAT (Design)'],
-    'Actual (Design + Holding) = Total TAT': ['Actual (Design + Holding) = Total TAT', 'Actual Total TAT', 'Total TAT (Actual)'],
-    'Trip Status':                           ['Trip Status'],
-    'Overall Performance':                   ['Overall Performance'],
-    'Destination-STA':                       ['Destination-STA', 'Destination STA', 'Dest STA', 'Destination STA Date'],
-    'LH Detailed Reason':                    ['LH Detailed Reason', 'LH Reason', 'Detailed Reason'],
-    'Standard Comment':                      ['Standard Comment'],
+COLS = {
+    'date':      'Date of Connection',
+    'week':      'Trip Starting Week',
+    'dep_type':  'Departure Type',
+    'vendor':    'Vendor Name',
+    'lane':      'Lane Code',
+    'origin':    'Origin_DC',
+    'std':       'Vehicle STD',
+    'atd':       'Vehicle ATD',
+    'pl':        'Delay Placement (Hr)',
+    'dep':       'Delay Departure (Hrs)',
+    'rT':        'Designed Running TAT',
+    'aR':        'Actual Running TAT',
+    'dT':        'Design + Holding = Total TAT',
+    'aT':        'Actual (Design + Holding) = Total TAT',
+    'status':    'Trip Status',
+    'perf':      'Overall Performance',
+    'dest_sta':  'Destination-STA',
+    'reason_std':'Standard Comment',
+    'reason_lh': 'LH Detailed Reason',
 }
 
-def resolve_col(col_key):
-    for candidate in COL_MAP.get(col_key, [col_key]):
-        if candidate in df.columns:
-            return candidate
+# Verify columns exist, try fuzzy match if not
+def find_col(name):
+    if name in df.columns:
+        return name
+    # Case-insensitive contains
+    name_l = name.lower()
+    for c in df.columns:
+        if name_l in c.lower() or c.lower() in name_l:
+            return c
     return None
 
-def get_val(row, col_key):
-    col = resolve_col(col_key)
-    if col is None:
-        return None
-    val = row.get(col)
-    if isinstance(val, float) and pd.isna(val):
-        return None
-    return val
+resolved = {}
+print("\n=== Column resolution ===")
+for key, name in COLS.items():
+    col = find_col(name)
+    resolved[key] = col
+    print(f"  {'✓' if col else '✗'} {key:12s} '{name}' → {col or 'NOT FOUND'}")
+print("===\n")
 
-# Print resolved columns
-print("=== COLUMN RESOLUTION ===")
-for key in COL_MAP:
-    r = resolve_col(key)
-    print(f"  {'✓' if r else '✗'} {key} → {r or 'NOT FOUND'}")
-print("=== END RESOLUTION ===\n")
+def gv(row, key):
+    col = resolved.get(key)
+    if not col: return None
+    v = row.get(col)
+    if isinstance(v, float) and pd.isna(v): return None
+    return v
 
 # ── Helpers ───────────────────────────────────────────────────
 EXCEL_EPOCH = datetime(1899, 12, 30)
 
-def parse_time_str(s):
-    """Parse HH:MM:SS or H:MM:SS string to hours (float)."""
-    s = str(s).strip()
-    m = re.match(r'^(\d+):(\d{2}):(\d{2})$', s)
-    if m:
-        return int(m.group(1)) + int(m.group(2))/60 + int(m.group(3))/3600
-    return None
-
-def xl_to_date_str(val):
-    if val is None: return None
+def safe_str(val):
+    if val is None: return ''
+    if isinstance(val, float) and pd.isna(val): return ''
     s = str(val).strip()
-    if s in ('', 'nan', 'None', '#REF!'): return None
-    # Try Excel serial
+    return '' if s in ('#REF!', 'nan', 'None') else s
+
+def frac_day_to_hours(val):
+    """
+    CONFIRMED: All TAT and delay columns are stored as Excel fractional days.
+    Examples from actual data:
+      0.2916 → 7.00h  (Designed Running TAT)
+      0.2756 → 6.62h  (Actual Running TAT)
+      0.0138 → 0.33h  (Delay Departure - ~20 min)
+      0.375  → 9.00h  (Total TAT)
+    Formula: hours = value × 24
+    """
+    s = safe_str(val)
+    if not s: return None
+    try:
+        f = float(s)
+        if f == 0.0: return 0.0
+        if 0 < f < 10:
+            return round(f * 24, 4)   # fractional day → hours
+        if f > 40000:
+            # datetime serial → extract time-of-day portion × 24
+            return round((f - int(f)) * 24, 4)
+        # f >= 10: treat as already in hours
+        return round(f, 4)
+    except (ValueError, TypeError):
+        return None
+
+def xl_serial_to_date(val):
+    """Excel serial → YYYY-MM-DD. e.g. 46113.0 → 2026-04-01"""
+    s = safe_str(val)
+    if not s: return None
     try:
         f = float(s)
         if f > 2:
             return (EXCEL_EPOCH + timedelta(days=f)).strftime('%Y-%m-%d')
-    except (TypeError, ValueError):
+    except (ValueError, TypeError):
         pass
-    # Try date string formats
-    for fmt in ('%Y-%m-%d', '%d-%m-%Y', '%d/%m/%Y', '%m/%d/%Y', '%d %b %Y'):
+    for fmt in ('%Y-%m-%d', '%d-%m-%Y', '%d/%m/%Y', '%m/%d/%Y'):
         try:
             return datetime.strptime(s, fmt).strftime('%Y-%m-%d')
         except ValueError:
             pass
     return None
 
-def xl_to_datetime_obj(val):
-    if val is None: return None
-    s = str(val).strip()
-    if s in ('', 'nan', 'None', '#REF!'): return None
+def xl_serial_to_dt(val):
+    """Excel serial → datetime object."""
+    s = safe_str(val)
+    if not s: return None
     try:
         f = float(s)
         if f > 2:
             return EXCEL_EPOCH + timedelta(days=f)
-    except (TypeError, ValueError):
-        pass
-    # Try datetime string formats
-    for fmt in ('%Y-%m-%d %H:%M:%S', '%d-%m-%Y %H:%M:%S', '%d/%m/%Y %H:%M'):
-        try:
-            return datetime.strptime(s, fmt)
-        except ValueError:
-            pass
-    return None
-
-def xl_to_hours(val):
-    """Convert various formats to hours (float)."""
-    if val is None: return None
-    s = str(val).strip()
-    if s in ('', 'nan', 'None', '#REF!'): return None
-
-    # HH:MM:SS format (e.g. "7:00:00" = 7 hours)
-    t = parse_time_str(s)
-    if t is not None:
-        return round(t, 4)
-
-    try:
-        f = float(s)
-        # Excel fractional day (0 < f <= 2 means it's a time fraction)
-        if 0 < f <= 2:
-            return round(f * 24, 4)
-        # Excel datetime serial (f > 2) — extract time portion only
-        if f > 2:
-            frac = f - int(f)
-            return round(frac * 24, 4)
-        # Could already be in hours (f > 0 but small means fraction of day)
-        return round(f * 24, 4) if 0 < f < 1 else round(f, 4)
-    except (TypeError, ValueError):
+    except (ValueError, TypeError):
         pass
     return None
 
-def dep_delay_hours(std_val, atd_val, fallback_val):
-    """
-    Compute departure delay in hours = ATD - STD.
-    Falls back to pre-computed delay column if STD/ATD not available.
-    """
-    std_dt = xl_to_datetime_obj(std_val)
-    atd_dt = xl_to_datetime_obj(atd_val)
-    if std_dt and atd_dt:
-        return round((atd_dt - std_dt).total_seconds() / 3600, 4)
-    # fallback: pre-computed column
-    return xl_to_hours(fallback_val)
-
-def safe_str(val):
-    if val is None: return ''
-    s = str(val).strip()
-    return '' if s in ('#REF!', 'nan', 'None', '') else s
-
-# ── Verify required columns ───────────────────────────────────
-missing = [r for r in ['Date of Connection', 'Trip Starting Week', 'Overall Performance']
-           if resolve_col(r) is None]
-if missing:
-    print(f"ERROR: Required columns not found: {missing}")
-    print(f"All columns: {list(df.columns)}")
-    raise ValueError(f"Required columns missing: {missing}")
+# ── Require key columns ───────────────────────────────────────
+for req in ['date', 'week', 'perf']:
+    if not resolved.get(req):
+        raise ValueError(f"Column '{COLS[req]}' not found. Available: {list(df.columns)}")
 
 # ── Build records ─────────────────────────────────────────────
 records = []
 skipped = 0
 
 for _, row in df.iterrows():
-    date_str = xl_to_date_str(get_val(row, 'Date of Connection'))
-    if not date_str:
-        skipped += 1
-        continue
+    # Date
+    date_str = xl_serial_to_date(gv(row, 'date'))
+    if not date_str: skipped += 1; continue
 
-    week = safe_str(get_val(row, 'Trip Starting Week'))
-    if not week:
-        skipped += 1
-        continue
+    # Week
+    week = safe_str(gv(row, 'week'))
+    if not week: skipped += 1; continue
 
-    # Departure ADH: ATD - STD in hours (positive = late, negative = early)
-    dp = dep_delay_hours(
-        get_val(row, 'Vehicle STD'),
-        get_val(row, 'Vehicle ATD'),
-        get_val(row, 'Delay Departure (Hrs)')
-    )
+    # Performance
+    perf = safe_str(gv(row, 'perf'))
+    if perf == 'On Time':     st = 'On Time'
+    elif perf == 'Breached':  st = 'Breached'
+    elif perf in ('Running On Time', 'Running-Delay'): st = perf
+    else: skipped += 1; continue
 
-    pl_h = xl_to_hours(get_val(row, 'Delay Placement (Hr)'))
-    rT   = xl_to_hours(get_val(row, 'Designed Running TAT'))
-    aR   = xl_to_hours(get_val(row, 'Actual Running TAT'))
-    dT   = xl_to_hours(get_val(row, 'Design + Holding = Total TAT'))
-    aT   = xl_to_hours(get_val(row, 'Actual (Design + Holding) = Total TAT'))
-    sta  = xl_to_date_str(get_val(row, 'Destination-STA'))
-
-    overall = safe_str(get_val(row, 'Overall Performance'))
-    if overall == 'On Time':         st = 'On Time'
-    elif overall == 'Breached':      st = 'Breached'
-    elif overall in ('Running On Time', 'Running-Delay'): st = overall
+    # Departure delay in hours:
+    # Method 1: ATD - STD (most accurate, confirmed both are datetime serials)
+    std_dt = xl_serial_to_dt(gv(row, 'std'))
+    atd_dt = xl_serial_to_dt(gv(row, 'atd'))
+    if std_dt and atd_dt:
+        dp = round((atd_dt - std_dt).total_seconds() / 3600, 4)
     else:
-        skipped += 1
-        continue
+        # Method 2: pre-computed column (fractional day → hours)
+        dp = frac_day_to_hours(gv(row, 'dep'))
 
-    trip_status = safe_str(get_val(row, 'Trip Status'))
-    reason = safe_str(get_val(row, 'LH Detailed Reason')) or safe_str(get_val(row, 'Standard Comment'))
+    # All TAT / delay columns → fractional day × 24 = hours
+    pl = frac_day_to_hours(gv(row, 'pl'))
+    rT = frac_day_to_hours(gv(row, 'rT'))
+    aR = frac_day_to_hours(gv(row, 'aR'))
+    dT = frac_day_to_hours(gv(row, 'dT'))
+    aT = frac_day_to_hours(gv(row, 'aT'))
+
+    trip_st = safe_str(gv(row, 'status'))
+    sta     = xl_serial_to_date(gv(row, 'dest_sta'))
+    reason  = safe_str(gv(row, 'reason_lh')) or safe_str(gv(row, 'reason_std'))
 
     records.append({
         'd':   date_str,
         'w':   week,
-        'l':   safe_str(get_val(row, 'Lane Code')),
-        'o':   safe_str(get_val(row, 'Origin_DC')),
-        't':   safe_str(get_val(row, 'Departure Type')),
-        'v':   safe_str(get_val(row, 'Vendor Name')),
-        'pl':  pl_h,
+        'l':   safe_str(gv(row, 'lane')),
+        'o':   safe_str(gv(row, 'origin')),
+        't':   safe_str(gv(row, 'dep_type')),
+        'v':   safe_str(gv(row, 'vendor')),
+        'pl':  pl,
         'dp':  dp,
         'rT':  rT,
         'aR':  aR,
@@ -248,21 +235,28 @@ for _, row in df.iterrows():
         'aT':  aT,
         'st':  st,
         'rs':  reason,
-        'rS':  trip_status,
+        'rS':  trip_st,
         'sta': sta,
     })
 
 print(f"Records built: {len(records)}, skipped: {skipped}")
 
-# Debug: show sample parsed values
+# ── Sanity check ──────────────────────────────────────────────
+closed  = [r for r in records if 'closed' in r['rS'].lower()]
+ot      = sum(1 for r in closed if r['st'] == 'On Time')
+br      = sum(1 for r in closed if r['st'] == 'Breached')
+rT_ok   = sum(1 for r in records if r['rT'] is not None)
+dp_ok   = sum(1 for r in records if r['dp'] is not None)
+dep_adh = sum(1 for r in closed if r['dp'] is not None and r['dp'] <= 0.5)
+dep_den = sum(1 for r in closed if r['dp'] is not None)
+
+print(f"  Closed: {len(closed)} | On Time: {ot} | Breached: {br}")
+print(f"  rT parsed OK: {rT_ok}/{len(records)}")
+print(f"  dp parsed OK: {dp_ok}/{len(records)}")
+print(f"  Dep ADH (<=30min): {dep_adh}/{dep_den} = {round(dep_adh/dep_den*100,1) if dep_den else 0}%")
 if records:
-    print("\n=== SAMPLE PARSED RECORD (first 3) ===")
-    for r in records[:3]:
-        print(f"  date={r['d']} week={r['w']} lane={r['l']}")
-        print(f"  pl={r['pl']} dp={r['dp']} rT={r['rT']} aR={r['aR']} dT={r['dT']} aT={r['aT']}")
-        print(f"  st={r['st']} tripStatus={r['rS']} sta={r['sta']}")
-        print()
-    print("=== END SAMPLE ===\n")
+    r0 = records[0]
+    print(f"  Sample: rT={r0['rT']}h aR={r0['aR']}h dp={r0['dp']}h pl={r0['pl']}h st={r0['st']} rS='{r0['rS']}'")
 
 # ── Inject into dashboard.html ────────────────────────────────
 with open('dashboard.html', 'r', encoding='utf-8') as f:
@@ -281,21 +275,4 @@ html = html.replace(inject_line, replacement, 1)
 with open('dashboard.html', 'w', encoding='utf-8') as f:
     f.write(html)
 
-# ── Summary ───────────────────────────────────────────────────
-closed  = [r for r in records if 'closed' in r['rS'].lower()]
-ot      = sum(1 for r in closed if r['st'] == 'On Time')
-br      = sum(1 for r in closed if r['st'] == 'Breached')
-dep_ok  = sum(1 for r in closed if r['dp'] is not None and r['dp'] <= 0.5)
-dep_den = sum(1 for r in closed if r['dp'] is not None)
-rT_ok   = sum(1 for r in closed if r['rT'] is not None)
-dep_pct = round(dep_ok / dep_den * 100, 1) if dep_den else 0
-pct_ot  = round(ot / (ot+br) * 100, 1) if (ot+br) else 0
-
-print(f"Dashboard rebuilt successfully!")
-print(f"  Total records    : {len(records)}")
-print(f"  Closed trips     : {len(closed)}")
-print(f"  On-time          : {ot} ({pct_ot}%)")
-print(f"  Breached         : {br}")
-print(f"  Records with rT  : {rT_ok}")
-print(f"  Dep ADH (STD+30m): {dep_pct}%  ({dep_ok}/{dep_den})")
-print(f"  Updated at       : {meta['updated']}")
+print(f"\nDashboard rebuilt: {meta['updated']}")
