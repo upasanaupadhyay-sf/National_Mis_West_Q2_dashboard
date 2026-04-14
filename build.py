@@ -3,12 +3,18 @@ from io import StringIO
 from datetime import datetime
 
 # ── Config ────────────────────────────────────────────────────
-# Sheet ID is loaded from GitHub Secret (SHEET_ID)
+# Sheet ID hardcoded directly for reliability
 # Your sheet: https://docs.google.com/spreadsheets/d/1ToWkm-UDTv6SK1I12rx-JV0vkNk_5nYa_h-jmbDii8k
-SHEET_ID = os.environ.get("SHEET_ID", "1ToWkm-UDTv6SK1I12rx-JV0vkNk_5nYa_h-jmbDii8k")
+SHEET_ID = "1ToWkm-UDTv6SK1I12rx-JV0vkNk_5nYa_h-jmbDii8k"
 SHEET_NAME = "Basedata"
 
+# Also try from environment secret if available
+_secret = os.environ.get("SHEET_ID", "").strip()
+if _secret and len(_secret) > 10:
+    SHEET_ID = _secret
+
 URL = f"https://docs.google.com/spreadsheets/d/{SHEET_ID}/gviz/tq?tqx=out:csv&sheet={SHEET_NAME}"
+print(f"Using Sheet ID: {SHEET_ID[:8]}...{SHEET_ID[-4:]}")
 
 # ── Fetch ─────────────────────────────────────────────────────
 print(f"Fetching: {SHEET_NAME} from Google Sheets...")
