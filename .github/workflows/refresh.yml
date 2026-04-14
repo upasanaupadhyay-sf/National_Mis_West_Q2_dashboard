@@ -30,11 +30,17 @@ jobs:
         env:
           SHEET_ID: ${{ secrets.SHEET_ID }}
 
-      - name: Commit and push updated dashboard
+      - name: Rebuild combined dashboard
+        working-directory: ${{ github.workspace }}
+        run: python build_combined.py
+        env:
+          SHEET_ID: ${{ secrets.SHEET_ID }}
+
+      - name: Commit and push updated dashboards
         run: |
           git config user.name  "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add dashboard.html
+          git add dashboard.html combined_dashboard.html
           git diff --cached --quiet \
             || git commit -m "Auto-refresh: $(date -u '+%d %b %Y %H:%M UTC')"
           git push
