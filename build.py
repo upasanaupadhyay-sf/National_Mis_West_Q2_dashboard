@@ -8,18 +8,27 @@ from datetime import datetime
 SHEET_ID = "1ToWkm-UDTv6SK1I12rx-JV0vkNk_5nYa_h-jmbDii8k"
 SHEET_NAME = "Basedata"
 
-# Also try from environment secret if available
-_secret = os.environ.get("SHEET_ID", "").strip()
-if _secret and len(_secret) > 10:
-    SHEET_ID = _secret
-
-URL = f"https://docs.google.com/spreadsheets/d/{SHEET_ID}/gviz/tq?tqx=out:csv&sheet={SHEET_NAME}"
-print(f"Using Sheet ID: {SHEET_ID[:8]}...{SHEET_ID[-4:]}")
+# Use the direct export URL with GID - works when sheet is shared as "Anyone with link"
+# GID 1839236023 = Basedata sheet tab
+SHEET_GID = "1839236023"
+URL = f"https://docs.google.com/spreadsheets/d/{SHEET_ID}/export?format=csv&gid={SHEET_GID}"
+URL_GVIZ = f"https://docs.google.com/spreadsheets/d/{SHEET_ID}/gviz/tq?tqx=out:csv&sheet={SHEET_NAME}"
 
 # ── Fetch ─────────────────────────────────────────────────────
 print(f"Fetching: {SHEET_NAME} from Google Sheets...")
-res = requests.get(URL, timeout=30)
-res.raise_for_status()
+try:
+    res = requests.get(URL, timeout=30)
+    res.raise_for_status()
+    print("Export URL worked")
+except Exception as e1:
+    print(f"Export URL failed ({e1}), trying gviz URL...")
+    try:
+        res = requests.get(URL_GVIZ, timeout=30)
+        res.raise_for_status()
+        print("Gviz URL worked")
+    except Exception as e2:
+        print(f"Both URLs failed. e1={e1}, e2={e2}")
+        raise e2
 df = pd.read_csv(StringIO(res.text))
 print(f"Loaded {len(df)} rows, {len(df.columns)} columns")
 
