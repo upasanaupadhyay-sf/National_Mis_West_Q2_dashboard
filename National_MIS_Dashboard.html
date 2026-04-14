@@ -4,8 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>National MIS Dashboard — West Zone Q2 2026</title>
-<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,300&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js" crossorigin="anonymous"></script>
 <style>
   :root {
     --bg: #0b0e13;
@@ -33,7 +33,7 @@
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body {
-    font-family: 'DM Sans', sans-serif;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
     background: var(--bg);
     color: var(--text);
     min-height: 100vh;
@@ -120,7 +120,7 @@
   .kpi-card.amber::before { background: var(--amber); }
   .kpi-card.blue::before { background: var(--blue); }
   .kpi-label { font-size: 11px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text3); margin-bottom: 10px; }
-  .kpi-value { font-size: 34px; font-weight: 600; line-height: 1; font-family: 'DM Mono', monospace; }
+  .kpi-value { font-size: 34px; font-weight: 600; line-height: 1; font-family: monospace; }
   .kpi-card.green .kpi-value { color: var(--green); }
   .kpi-card.red .kpi-value { color: var(--red); }
   .kpi-card.amber .kpi-value { color: var(--amber); }
@@ -158,7 +158,7 @@
   tbody tr { border-bottom: 1px solid var(--border); transition: background 0.1s; }
   tbody tr:hover { background: rgba(255,255,255,0.02); }
   tbody td { padding: 10px 12px; color: var(--text2); }
-  tbody td:first-child { color: var(--text); font-weight: 500; font-family: 'DM Mono', monospace; font-size: 11px; }
+  tbody td:first-child { color: var(--text); font-weight: 500; font-family: monospace; font-size: 11px; }
   .badge {
     display: inline-block; padding: 2px 8px; border-radius: 4px;
     font-size: 10px; font-weight: 600; letter-spacing: 0.05em;
@@ -173,7 +173,7 @@
   .dep-list { display: flex; flex-direction: column; gap: 10px; margin-top: 4px; }
   .dep-row { display: flex; flex-direction: column; gap: 4px; }
   .dep-label { display: flex; justify-content: space-between; font-size: 12px; color: var(--text2); }
-  .dep-label span:last-child { font-family: 'DM Mono', monospace; font-size: 11px; color: var(--text); }
+  .dep-label span:last-child { font-family: monospace; font-size: 11px; color: var(--text); }
   .dep-track { height: 5px; background: var(--border); border-radius: 3px; overflow: hidden; }
   .dep-fill { height: 100%; border-radius: 3px; }
 
@@ -186,7 +186,7 @@
   .reason-grid { display: flex; flex-direction: column; gap: 8px; }
   .reason-row { display: flex; align-items: center; gap: 10px; }
   .reason-label { font-size: 12px; color: var(--text2); flex: 1; }
-  .reason-count { font-size: 11px; font-family: 'DM Mono', monospace; color: var(--text); min-width: 24px; text-align: right; }
+  .reason-count { font-size: 11px; font-family: monospace; color: var(--text); min-width: 24px; text-align: right; }
   .reason-track { flex: 0 0 80px; height: 4px; background: var(--border); border-radius: 2px; overflow: hidden; }
   .reason-fill { height: 100%; background: var(--red); border-radius: 2px; }
 
@@ -205,6 +205,10 @@
 </style>
 </head>
 <body>
+<div id="loading-msg" style="position:fixed;top:0;left:0;right:0;bottom:0;background:#0b0e13;display:flex;align-items:center;justify-content:center;z-index:9999;flex-direction:column;gap:16px;">
+  <div style="color:#22c97d;font-size:18px;font-weight:600;font-family:Arial,sans-serif">Loading MIS Dashboard...</div>
+  <div style="color:#555d70;font-size:13px;font-family:Arial,sans-serif">Please wait while charts load</div>
+</div>
 <div class="app">
 
 <!-- Sidebar -->
@@ -441,7 +445,7 @@ let activeWeek = 'All';
 
 // ── Chart defaults ────────────────────────────────────────────
 Chart.defaults.color = '#8a90a0';
-Chart.defaults.font.family = "'DM Sans', sans-serif";
+Chart.defaults.font.family = "-apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif";
 Chart.defaults.font.size = 11;
 const GRID = 'rgba(255,255,255,0.05)';
 const GREEN = '#22c97d', RED = '#f24c4c', AMBER = '#f5a623', BLUE = '#4b8ef0', TEAL = '#29bfb8';
@@ -578,7 +582,7 @@ function buildLaneTable() {
       <td>${l.total}</td>
       <td><span class="badge badge-red">${l.breached}</span></td>
       <td><span class="badge badge-green">${ontime}</span></td>
-      <td style="font-family:'DM Mono',monospace;color:${rateColor};font-size:13px;font-weight:600">${l.rate}%</td>
+      <td style="font-family:monospace;color:${rateColor};font-size:13px;font-weight:600">${l.rate}%</td>
       <td style="width:120px">
         <div class="rate-bar"><div class="rate-bar-fill" style="width:${l.rate}%;background:${rateColor}"></div></div>
       </td>
@@ -645,15 +649,23 @@ function updateTimestamp() {
 }
 
 // ── Init ──────────────────────────────────────────────────────
-buildDaily();
-buildWeekly(ALL_DATA.weekly);
-buildDonut(ALL_DATA.kpi ? ALL_DATA.kpi.ontime : 407, ALL_DATA.kpi ? ALL_DATA.kpi.breached : 316, ALL_DATA.kpi ? ALL_DATA.kpi.running : 82);
-buildOrigin();
-buildDependency();
-buildReasons();
-buildLaneTable();
-updateKPIs(ALL_DATA.weekly);
-updateTimestamp();
+try { buildDaily(); } catch(e) { console.error('buildDaily failed:', e); }
+try { buildWeekly(ALL_DATA.weekly); } catch(e) { console.error('buildWeekly failed:', e); }
+try { buildDonut(ALL_DATA.kpi ? ALL_DATA.kpi.ontime : 407, ALL_DATA.kpi ? ALL_DATA.kpi.breached : 316, ALL_DATA.kpi ? ALL_DATA.kpi.running : 82); } catch(e) { console.error('buildDonut failed:', e); }
+try { buildOrigin(); } catch(e) { console.error('buildOrigin failed:', e); }
+try { buildDependency(); } catch(e) { console.error('buildDependency failed:', e); }
+try { buildReasons(); } catch(e) { console.error('buildReasons failed:', e); }
+try { buildLaneTable(); } catch(e) { console.error('buildLaneTable failed:', e); }
+try { updateKPIs(ALL_DATA.weekly); } catch(e) { console.error('updateKPIs failed:', e); }
+try { updateTimestamp(); } catch(e) {}
+// Show updated time from live data
+if (ALL_DATA.updated) {
+  const el = document.getElementById('updated-time');
+  if (el) el.textContent = 'Data: ' + ALL_DATA.updated;
+}
+// Hide loading overlay
+const loader = document.getElementById('loading-msg');
+if (loader) loader.style.display = 'none';
 // Show last updated from live data if available
 if (ALL_DATA.updated) {
   const el = document.getElementById('updated-time');
