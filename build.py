@@ -5,7 +5,7 @@ from datetime import datetime
 # ── Config ────────────────────────────────────────────────────
 # Sheet ID hardcoded directly for reliability
 # Your sheet: https://docs.google.com/spreadsheets/d/1ToWkm-UDTv6SK1I12rx-JV0vkNk_5nYa_h-jmbDii8k
-SHEET_ID = "1ToWkm-UDTv6SK1I12rx-JV0vkNk_5nYa_h-jmbDii8k"
+SHEET_ID = "1lU18_6sXGMlQG4P-AZf-Qw-auu--4wac3IpcEZyoV5A"
 SHEET_NAME = "Basedata"
 
 # Use the direct export URL with GID - works when sheet is shared as "Anyone with link"
