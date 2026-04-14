@@ -2,11 +2,11 @@ name: Refresh MIS Dashboard
 
 on:
   schedule:
-    - cron: '30 * * * *'   # Every hour at :30 past (UTC) = :00 IST approx
-  workflow_dispatch:         # Manual trigger from Actions tab anytime
+    - cron: '30 * * * *'   # Every hour at :30 past UTC = ~:00 IST
+  workflow_dispatch:         # Manual trigger anytime from Actions tab
 
 permissions:
-  contents: write            # Allows the job to push updated dashboard.html
+  contents: write            # Required to push updated dashboard.html
 
 jobs:
   refresh:
@@ -22,13 +22,11 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: Install Python dependencies
+      - name: Install dependencies
         run: pip install requests pandas
 
-      - name: Fetch Google Sheet data and rebuild dashboard
+      - name: Fetch data and rebuild dashboard
         run: python build.py
-        env:
-          SHEET_ID: ${{ secrets.SHEET_ID }}
 
       - name: Commit and push updated dashboard
         run: |
