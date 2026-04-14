@@ -25,16 +25,11 @@ jobs:
       - name: Install Python dependencies
         run: pip install requests pandas
 
-      - name: Fetch Google Sheet data and rebuild dashboard
+      - name: Rebuild original dashboard
         run: python build.py
-        env:
-          SHEET_ID: ${{ secrets.SHEET_ID }}
 
       - name: Rebuild combined dashboard
-        working-directory: ${{ github.workspace }}
         run: python build_combined.py
-        env:
-          SHEET_ID: ${{ secrets.SHEET_ID }}
 
       - name: Commit and push updated dashboards
         run: |
