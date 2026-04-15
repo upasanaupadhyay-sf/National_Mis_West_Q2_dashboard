@@ -2,7 +2,7 @@ name: Refresh MIS Dashboard
 
 on:
   schedule:
-    - cron: '30 * * * *'   # Every hour at :30 past (UTC) = :00 IST approx
+    - cron: '17 */2 * * *' # Every 2 hours at :17 UTC (less congested slot to reduce GitHub scheduler delays)
   workflow_dispatch:         # Manual trigger from Actions tab anytime
 
 permissions:
